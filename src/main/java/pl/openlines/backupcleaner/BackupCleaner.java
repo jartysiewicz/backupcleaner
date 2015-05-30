@@ -7,17 +7,15 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * Created by yohan on 30.05.15.
  */
 public class BackupCleaner {
-    private static final float NEED_SPACE_FACTOR = 2.0f;
+    private static final float NEED_SPACE_FACTOR = 1.1f;
 
     private final Logger log = LoggerFactory.getLogger(BackupCleaner.class);
 
@@ -66,20 +64,56 @@ public class BackupCleaner {
         }
     }
     public Collection<String> findWhatToDelete(Set<FileInfo> files, long freeSpace) {
-        ImmutableList.Builder<String> retvalBuilder = ImmutableList.builder();
+        log.info("finding what to delete from files {}", files);
+        ImmutableList.Builder<String> retvalAccumulator = ImmutableList.builder();
 
         Multimap<LocalDate, FileInfo> sortedByDate = sortByDate(files);
-        long needSpace = computeNeedSpace(sortedByDate);
-        if (needSpace>0) {
-            sortedByDate.keySet().stream().sorted().forEach(d-> {
-                Collection<FileInfo> filesForDay = sortedByDate.get(d);
+        long needSpaceForNextDay = computeNeedSpace(sortedByDate);
+        long missingSpace = needSpaceForNextDay - freeSpace;
 
-                log.info("day: {}, files: {}", d, filesForDay);
+        if (missingSpace >0) {
+            long stillMissing = acumulateFilesToDelete(retvalAccumulator, sortedByDate, missingSpace);
 
-            });
+            if (stillMissing>0) {
+                log.error("goal not archived, still missing {}", stillMissing);
+            }
+        } else {
+            log.info("more or equal space ({}) than need ({})", freeSpace, needSpaceForNextDay);
         }
 
-        return retvalBuilder.build();
+        ImmutableList<String> retval = retvalAccumulator.build();
+        log.info("delete proposal: {}", retval);
+        return retval;
+    }
+
+    private long acumulateFilesToDelete(ImmutableList.Builder<String> retvalBuilder, Multimap<LocalDate, FileInfo> sortedByDate, long missingSpace) {
+        long stillMissing = missingSpace;
+        log.info("{} bytes missing", missingSpace);
+
+        List<LocalDate> listOfDays = sortedByDate.keySet().stream().sorted().collect(Collectors.toList());
+
+        for (LocalDate day: listOfDays) {
+            Collection<FileInfo> filesForDay = sortedByDate.get(day).stream()
+                    .sorted((f1, f2) -> Long.compare(f2.getSize(), f1.getSize()))
+                    .collect(Collectors.toList());
+
+            log.info("day: {}, files: {}", day, filesForDay);
+            for (FileInfo f : filesForDay) {
+                retvalBuilder.add(f.getName());
+                stillMissing = stillMissing - f.getSize();
+                log.info("adding file to delete: {}", f);
+                if (stillMissing > 0) {
+                    log.info("stillMissing {}", stillMissing);
+                } else {
+                    log.info("archived goal");
+                    break;
+                }
+            }
+            if (stillMissing<=0) {
+                break;
+            }
+        }
+        return stillMissing;
     }
 
     private long computeNeedSpace(Multimap<LocalDate, FileInfo> sortedByDate) {
@@ -91,7 +125,6 @@ public class BackupCleaner {
 
             Collection<FileInfo> lastDayFiles = sortedByDate.get(lastDay);
             spaceNeed = (long) (lastDayFiles.stream().mapToLong(f -> f.getSize()).sum() * NEED_SPACE_FACTOR);
-            log.info("Need space {}", spaceNeed);
         }
         return spaceNeed;
     }
