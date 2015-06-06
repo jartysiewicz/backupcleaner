@@ -104,7 +104,7 @@ public class BackupCleaner {
                 stillMissing = stillMissing - f.getSize();
                 log.info("adding file to delete: {}", f);
                 if (stillMissing > 0) {
-                    log.info("stillMissing {}", stillMissing);
+                    log.info("stillMissing {}", humanReadableByteCount(stillMissing));
                 } else {
                     log.info("archived goal");
                     break;

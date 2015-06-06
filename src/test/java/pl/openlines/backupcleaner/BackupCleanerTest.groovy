@@ -2,6 +2,7 @@ package pl.openlines.backupcleaner
 import com.google.common.collect.ImmutableList
 
 import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 /**
  * Created by yohan on 30.05.15.
@@ -71,5 +72,26 @@ class BackupCleanerTest extends GroovyTestCase {
         // then
         assert toDelete.size()==1
         assert toDelete[0] == "test2"
+    }
+
+    void testFindWhatToDelete_realData() {
+        // given
+        File testDataFile = new File("src/test/resources/realdata.txt");
+        Collection<BackupCleaner.FileInfo> fileInfos = testDataFile.collect { l ->
+            def parts = l.split(" +");
+            Long size = Long.parseLong(parts[4])
+            String tz = parts[7][0..2] + ":" + parts[7][3..4]
+            Instant date = Instant.from(DateTimeFormatter.ISO_OFFSET_DATE_TIME.parse(parts[5]+"T"+parts[6]+tz))
+
+            new BackupCleaner.FileInfo(parts[8], size, date);
+        } as Set
+        long space = 65 * 1024 * 1024;
+
+        // when
+        def toDelete = new BackupCleaner().findWhatToDelete(fileInfos, space)
+
+        // then
+        assert toDelete.size()==4
+        assert toDelete == ["dms_iq.15_05_30.db.gz", "test", "dms_iq.15_05_30.tar.gz", "dms_iq.15_05_31.db.gz"]
     }
 }
