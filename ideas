@@ -1,0 +1,14 @@
+given: 
+
+list of file infos 
+    name string (key)
+    size long
+    creationTimestamp creationTimestamp
+
+freeSpace
+
+
+output: 
+    list of fileNames to delete for fit next day backup 
+    assumption we need at leas 2x space ocupied by files from last day
+

@@ -60,7 +60,7 @@ public class BackupCleaner {
 
         @Override
         public String toString() {
-            return name + " " + size + " (" + createTimestamp + ")";
+            return name + " " + humanReadableByteCount(size) + " (" + createTimestamp + ")";
         }
     }
     public Collection<String> findWhatToDelete(Set<FileInfo> files, long freeSpace) {
@@ -75,10 +75,11 @@ public class BackupCleaner {
             long stillMissing = acumulateFilesToDelete(retvalAccumulator, sortedByDate, missingSpace);
 
             if (stillMissing>0) {
-                log.error("goal not archived, still missing {}", stillMissing);
+                log.error("goal not archived, still missing {}", humanReadableByteCount(stillMissing));
             }
         } else {
-            log.info("more or equal space ({}) than need ({})", freeSpace, needSpaceForNextDay);
+            log.info("more or equal space ({}) than need ({})", humanReadableByteCount(freeSpace),
+                    humanReadableByteCount(needSpaceForNextDay));
         }
 
         ImmutableList<String> retval = retvalAccumulator.build();
@@ -88,7 +89,7 @@ public class BackupCleaner {
 
     private long acumulateFilesToDelete(ImmutableList.Builder<String> retvalBuilder, Multimap<LocalDate, FileInfo> sortedByDate, long missingSpace) {
         long stillMissing = missingSpace;
-        log.info("{} bytes missing", missingSpace);
+        log.info("{} missing", humanReadableByteCount(missingSpace));
 
         List<LocalDate> listOfDays = sortedByDate.keySet().stream().sorted().collect(Collectors.toList());
 
@@ -136,6 +137,18 @@ public class BackupCleaner {
             sortedByDate.put(fileDate, f);
         });
         return sortedByDate;
+    }
+
+    public static String humanReadableByteCount(long bytes) {
+        return humanReadableByteCount(bytes, false);
+    }
+
+    public static String humanReadableByteCount(long bytes, boolean si) {
+        int unit = si ? 1000 : 1024;
+        if (bytes < unit) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
 }
