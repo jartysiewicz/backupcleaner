@@ -9,11 +9,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-/**
- * Created by yohan on 30.05.15.
- */
 public class BackupCleaner {
     private static final float NEED_SPACE_FACTOR = 1.1f;
 
@@ -72,7 +68,7 @@ public class BackupCleaner {
         long missingSpace = needSpaceForNextDay - freeSpace;
 
         if (missingSpace >0) {
-            long stillMissing = acumulateFilesToDelete(retvalAccumulator, sortedByDate, missingSpace);
+            long stillMissing = accumulateFilesToDelete(retvalAccumulator, sortedByDate, missingSpace);
 
             if (stillMissing>0) {
                 log.error("goal not archived, still missing {}", humanReadableByteCount(stillMissing));
@@ -87,7 +83,7 @@ public class BackupCleaner {
         return retval;
     }
 
-    private long acumulateFilesToDelete(ImmutableList.Builder<String> retvalBuilder, Multimap<LocalDate, FileInfo> sortedByDate, long missingSpace) {
+    private long accumulateFilesToDelete(ImmutableList.Builder<String> retvalBuilder, Multimap<LocalDate, FileInfo> sortedByDate, long missingSpace) {
         long stillMissing = missingSpace;
         log.info("{} missing", humanReadableByteCount(missingSpace));
 
@@ -125,7 +121,7 @@ public class BackupCleaner {
             log.info("Last day {}", lastDay);
 
             Collection<FileInfo> lastDayFiles = sortedByDate.get(lastDay);
-            spaceNeed = (long) (lastDayFiles.stream().mapToLong(f -> f.getSize()).sum() * NEED_SPACE_FACTOR);
+            spaceNeed = (long) (lastDayFiles.stream().mapToLong(FileInfo::getSize).sum() * NEED_SPACE_FACTOR);
         }
         return spaceNeed;
     }
