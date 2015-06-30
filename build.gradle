@@ -1,8 +1,16 @@
 group 'pl.openlines'
 version '1.0-SNAPSHOT'
 
+buildscript {
+    repositories { jcenter() }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.1'
+    }
+}
+
 apply plugin: 'groovy'
 apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 compileJava {
     sourceCompatibility = '1.8'
@@ -27,11 +35,4 @@ jar {
     }
 }
 
-task uberjar(type: Jar, dependsOn: [':compileJava', ':processResources']) {
-    from files(sourceSets.main.output.classesDir)
-    from configurations.runtime.asFileTree.files.collect { zipTree(it) }
 
-    manifest {
-        attributes 'Main-Class': 'pl.openlines.backupcleaner.BackupCleanerApp'
-    }
-}
