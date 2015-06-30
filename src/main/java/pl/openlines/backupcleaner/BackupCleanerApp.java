@@ -21,7 +21,7 @@ public class BackupCleanerApp {
 
         ImmutableSet.Builder<BackupCleaner.FileInfo> fileInfosBuilder = walkFiles(dir);
 
-        long freeSpace = 0; //dir.toFile().getFreeSpace();
+        long freeSpace = dir.toFile().getFreeSpace();
         log.info("assuming free space on fs: {}", BackupCleaner.humanReadableByteCount(freeSpace));
 
         Collection<String> whatToDelete = new BackupCleaner().findWhatToDelete(fileInfosBuilder.build(), freeSpace);
