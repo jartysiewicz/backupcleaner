@@ -115,7 +115,8 @@ public class BackupCleaner {
 
     private long computeNeedSpace(Multimap<LocalDate, FileInfo> sortedByDate) {
         long spaceNeed = 0;
-        Optional<LocalDate> max = sortedByDate.keys().stream().max(Comparator.naturalOrder());
+        Optional<LocalDate> max = sortedByDate.keys().stream()//
+            .max(Comparator.naturalOrder());
         if (max.isPresent()) {
             LocalDate lastDay = max.get();
             log.info("Last day {}", lastDay);

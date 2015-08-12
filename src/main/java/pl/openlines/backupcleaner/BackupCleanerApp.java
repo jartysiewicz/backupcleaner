@@ -33,7 +33,7 @@ public class BackupCleanerApp {
     private String produceMessage(Collection<String> whatToDelete) {
         String message = "\n\nNothing to delete";
         if (whatToDelete.size()>0) {
-            message = whatToDelete.stream().collect(Collectors.joining("\\\n\n", "rm -rf ", "\n\n"));
+            message = whatToDelete.stream().collect(Collectors.joining(" \\\n", "rm -rf ", "\n\n"));
             log.info(message);
         }
         return message;
@@ -47,7 +47,11 @@ public class BackupCleanerApp {
                 BackupCleaner.FileInfo fileInfo = new BackupCleaner.FileInfo(file.getFileName().toString(),
                         attrs.size(), attrs.creationTime().toInstant());
                 log.debug("found file: {}", fileInfo);
-                fileInfosBuilder.add(fileInfo);
+                if (attrs.size()==0) {
+                    log.warn("ignore zero size file: {}", fileInfo);
+                } else {
+                    fileInfosBuilder.add(fileInfo);
+                }
                 return FileVisitResult.CONTINUE;
             }
         });
